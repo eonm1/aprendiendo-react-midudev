@@ -4,13 +4,31 @@ import conffeti from 'canvas-confetti'
 import { Square } from "./components/Square";
 
 import { TURNS } from "./constants";
-import { checkWinnerFrom } from "./logic/board";
+import { checkWinnerFrom, checkEndGame } from "./logic/board";
+import { WinnerModal } from "./components/WinnerModal";
 
 
 function App(){
-  const [board, setBoard] = useState(Array(9).fill(null))
+  const [board, setBoard] = useState( () => {
+    const boardFromStorage = window.localStorage.getItem('board');
+    const turnFromStorage = window.localStorage.getItem('turn');
+    if (boardFromStorage && turnFromStorage) {
+      return JSON.parse(boardFromStorage);
+    }
+    return Array( 9 ).fill( null )
+  } )
+    
   
-  const [turn, setTurn] = useState( TURNS.X )
+    
+  
+  
+  const [turn, setTurn] = useState( () =>
+  {
+    const turnFromStorage = window.localStorage.getItem( 'turn' )
+    
+    return turnFromStorage ? JSON.parse( turnFromStorage ) :
+      TURNS.X
+  } )
   // Null - no ganador, false - empate, true - ganador
   const [winner, setWinner] = useState( null )
   
@@ -21,11 +39,11 @@ function App(){
     setBoard( Array( 9 ).fill( null ) );
     setTurn( TURNS.X );
     setWinner( null );
+
+    window.localStorage.removeItem( 'board' );
+    window.localStorage.removeItem('turn');
   }
     
-  const checkEndGame = ( newBoard ) =>{
-    return newBoard.every( square => square !== null );
-  }
   //Actualizar tablero
   const updateBoard = ( index ) =>
     {
@@ -40,7 +58,9 @@ function App(){
     
       const newTurn = turn === TURNS.X ? TURNS.O : TURNS.X;
       setTurn( newTurn );
-      
+      //TODO : Guardar en localstorage
+      window.localStorage.setItem('board', JSON.stringify(newBoard));
+      window.localStorage.setItem('turn', JSON.stringify(newTurn));
       //Actualizar ganador
       const newWinner = checkWinnerFrom(newBoard);
     if ( newWinner ){
@@ -70,25 +90,7 @@ function App(){
         <Square isSelected={turn === TURNS.O}>{TURNS.O}</Square>
       </section>
     
-      {
-        winner !== null &&
-        <section className="winner">
-            <div className="text">
-              <h2>
-                {
-                  winner === false ? 'Empate' :
-                    `Ganador: ${winner}`
-                }
-              </h2>
-              <header className="win">
-                {winner && <Square>{ winner }</Square>}
-              </header>
-              <footer>
-                <button onClick={resetGame}>Reiniciar el juego</button>
-              </footer>
-            </div>
-        </section>
-      }
+      <WinnerModal resetGame={resetGame} winner={winner} />
     
     </main>
   );
